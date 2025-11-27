@@ -28,10 +28,6 @@ const insuranceProviderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices
-insuranceProviderSchema.index({ name: 1 });
-insuranceProviderSchema.index({ code: 1 });
-
 // Middleware para actualizar updatedAt
 insuranceProviderSchema.pre('save', function(next) {
   this.updatedAt = new Date();

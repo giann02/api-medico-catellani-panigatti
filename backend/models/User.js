@@ -43,7 +43,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Índices
-userSchema.index({ username: 1 });
 userSchema.index({ role: 1 });
 
 // Middleware para encriptar contraseña antes de guardar
