@@ -62,10 +62,6 @@ Este sistema permite a los pacientes reservar citas médicas de forma online, mi
 
    ```
 
-#### Frontend
-
-El archivo `.env` en el frontend es opcional. El código ya tiene configurado por defecto `http://localhost:5000/api`, por lo que solo necesitas crear el archivo `.env` si se quiere usar una URL diferente del backend.
-
 ## Ejecutar el Proyecto
 
 El proyecto requiere dos terminales ejecutándose simultáneamente: una para el backend y otra para el frontend.
