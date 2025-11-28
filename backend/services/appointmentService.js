@@ -3,6 +3,15 @@ import InsuranceProvider from '../models/InsuranceProvider.js';
 import emailService from './emailService.js';
 
 class AppointmentService {
+  // Función helper para convertir fecha string a Date en zona horaria local
+  // Evita problemas de conversión UTC que restan un día
+  parseLocalDate(dateString) {
+    // Si la fecha viene como 'YYYY-MM-DD', crear la fecha en zona horaria local
+    const [year, month, day] = dateString.split('-').map(Number);
+    // month - 1 porque los meses en Date van de 0-11
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+  }
+
   // Crear nueva cita
   async createAppointment(appointmentData) {
     const { patientName, patientLastName, phone, email, insuranceProvider, date, time, notes } = appointmentData;
@@ -15,6 +24,9 @@ class AppointmentService {
     if (!insurance) {
       throw new Error('La obra social seleccionada no está disponible');
     }
+
+    // Convertir fecha a Date en zona horaria local
+    const appointmentDate = this.parseLocalDate(date);
 
     // Verificar conflicto de horario
     const hasConflict = await Appointment.checkTimeConflict(date, time);
@@ -29,7 +41,7 @@ class AppointmentService {
       phone,
       email,
       insuranceProvider,
-      date: new Date(date),
+      date: appointmentDate,
       time,
       notes,
       status: 'pending'
@@ -61,7 +73,8 @@ class AppointmentService {
     }
     
     if (date) {
-      const targetDate = new Date(date);
+      // Convertir fecha string a Date en zona horaria local
+      const targetDate = typeof date === 'string' ? this.parseLocalDate(date) : date;
       const nextDay = new Date(targetDate);
       nextDay.setDate(nextDay.getDate() + 1);
       
@@ -72,9 +85,15 @@ class AppointmentService {
     }
     
     if (startDate && endDate) {
+      const start = typeof startDate === 'string' ? this.parseLocalDate(startDate) : startDate;
+      const end = typeof endDate === 'string' ? this.parseLocalDate(endDate) : endDate;
+      // Para endDate, incluir todo el día
+      const endOfDay = new Date(end);
+      endOfDay.setHours(23, 59, 59, 999);
+      
       queryFilters.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $gte: start,
+        $lte: endOfDay
       };
     }
 
@@ -166,7 +185,8 @@ class AppointmentService {
 
   // Obtener horarios disponibles para una fecha
   async getAvailableTimes(date) {
-    const targetDate = new Date(date + 'T00:00:00');
+    // Convertir fecha string a Date en zona horaria local
+    const targetDate = typeof date === 'string' ? this.parseLocalDate(date) : date;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -180,10 +200,12 @@ class AppointmentService {
       throw new Error('No hay citas disponibles los fines de semana');
     }
 
-    const availableTimes = await Appointment.getAvailableTimes(date);
+    // Pasar la fecha como string al método estático
+    const dateString = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+    const availableTimes = await Appointment.getAvailableTimes(dateString);
 
     return {
-      date: date,
+      date: dateString,
       availableTimes: availableTimes
     };
   }
@@ -250,10 +272,16 @@ class AppointmentService {
 
   // Obtener citas por rango de fechas
   async getAppointmentsByDateRange(startDate, endDate) {
+    const start = typeof startDate === 'string' ? this.parseLocalDate(startDate) : startDate;
+    const end = typeof endDate === 'string' ? this.parseLocalDate(endDate) : endDate;
+    // Para endDate, incluir todo el día
+    const endOfDay = new Date(end);
+    endOfDay.setHours(23, 59, 59, 999);
+    
     return await Appointment.find({
       date: {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $gte: start,
+        $lte: endOfDay
       }
     }).sort({ date: 1, time: 1 });
   }

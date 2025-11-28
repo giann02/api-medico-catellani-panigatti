@@ -83,10 +83,31 @@ appointmentSchema.pre('save', function(next) {
   next();
 });
 
+// Función helper para convertir fecha string a Date en zona horaria local
+const parseLocalDate = (dateString) => {
+  // Si la fecha viene como 'YYYY-MM-DD', crear la fecha en zona horaria local
+  const [year, month, day] = dateString.split('-').map(Number);
+  // month - 1 porque los meses en Date van de 0-11
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+};
+
 // Método para verificar conflictos de horario
 appointmentSchema.statics.checkTimeConflict = async function(date, time, excludeId = null) {
+  // Convertir fecha string a Date en zona horaria local
+  const appointmentDate = typeof date === 'string' ? parseLocalDate(date) : date;
+  
+  // Crear rango del día completo (desde inicio hasta fin del día)
+  const startOfDay = new Date(appointmentDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(appointmentDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
   const query = { 
-    date: new Date(date), 
+    date: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    },
     time, 
     status: { $in: ['pending', 'confirmed'] } 
   };
@@ -106,8 +127,21 @@ appointmentSchema.statics.getAvailableTimes = async function(date) {
     "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
   ];
   
+  // Convertir fecha string a Date en zona horaria local
+  const appointmentDate = typeof date === 'string' ? parseLocalDate(date) : date;
+  
+  // Crear rango del día completo (desde inicio hasta fin del día)
+  const startOfDay = new Date(appointmentDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(appointmentDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
   const occupiedTimes = await this.find({
-    date: new Date(date),
+    date: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    },
     status: { $in: ['pending', 'confirmed'] }
   }).select('time');
   
